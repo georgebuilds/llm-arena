@@ -1,0 +1,244 @@
+/**
+ * LLM Arena — Hearth design tokens (mirrored from Persona).
+ * Light is :root, dark is html.dark — works with @nuxtjs/color-mode in `class` mode.
+ * Every color used in components must come from these tokens. Raw hex values in
+ * Vue templates/CSS are a regression — use Tailwind utilities backed by these vars.
+ */
+
+:root {
+  /* Surfaces — paper-warm, not pure white */
+  --surface-base: #FAF6EF;
+  --surface-1:    #F2ECE0;
+  --surface-2:    #FFFFFF;
+  --surface-3:    #E9E1D2;
+
+  /* Text */
+  --text-primary:   #1F1A14;
+  --text-secondary: #5C5246;
+  --text-tertiary:  #9A8E7E;
+
+  /* Hairlines */
+  --border-hairline: #E0D6C5;
+
+  /* Accent — model 1 / "right" speaker uses this peach */
+  --accent:       #C26241;
+  --accent-deep:  #A24E32;
+  --accent-glow:  rgba(194, 98, 65, 0.10);
+  --accent-text:  #FAF6EF;
+
+  /* Semantic */
+  --success: #6F9A56;
+  --warning: #C09244;
+  --danger:  #B85947;
+
+  /* Atmosphere — overhead spotlight, not a corner lamp. The arena is staged. */
+  --grain-opacity: 0.018;
+  --lamp-origin: 50% -8%;
+  --lamp-radius: 640px;
+  --spotlight-tint: rgba(232, 200, 168, 0.18);
+
+  /* Stage primitives — used by the masthead rostrum rule and the transcript
+     speaker bars. Calling them out keeps the metaphor consistent. */
+  --rostrum-rule: var(--hearth-amber);
+  --transcript-rule: var(--border-hairline);
+
+  /* Hearth amber — used for secondary accents */
+  --hearth-amber:      #B8804A;
+  --hearth-amber-deep: #A0703D;
+
+  /* Model two — the "left" speaker. A cool teal-slate to set against the warm peach. */
+  --model-two:       #4F7C8C;
+  --model-two-deep:  #3F6573;
+  --model-two-text:  #F2ECE0;
+}
+
+html.dark,
+.dark {
+  --surface-base: #131110;
+  --surface-1:    #1B1815;
+  --surface-2:    #221E1A;
+  --surface-3:    #2A2520;
+
+  --text-primary:   #F2EBE0;
+  --text-secondary: #B8AFA1;
+  --text-tertiary:  #6F665B;
+
+  --border-hairline: #2D2722;
+
+  --accent:       #E8956F;
+  --accent-deep:  #C77750;
+  --accent-glow:  rgba(232, 149, 111, 0.18);
+  --accent-text:  #1F1A14;
+
+  --success: #92C47A;
+  --warning: #E5B86E;
+  --danger:  #D67869;
+
+  --grain-opacity: 0.025;
+  --lamp-origin: 50% -8%;
+  --lamp-radius: 600px;
+  --spotlight-tint: rgba(232, 149, 111, 0.20);
+
+  --hearth-amber:      #C9976A;
+  --hearth-amber-deep: #B0804A;
+
+  --model-two:       #7AA8B8;
+  --model-two-deep:  #5E8E9E;
+  --model-two-text:  #131110;
+}
+
+html {
+  font-family: "Inter Tight", "Inter", system-ui, -apple-system, sans-serif;
+  font-feature-settings: "ss01", "cv11", "tnum";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background: var(--surface-base);
+  color: var(--text-primary);
+}
+
+body {
+  background: var(--surface-base);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
+/* The hearth atmosphere — applied to the app shell so modals don't double-stack. */
+.hearth-shell {
+  position: relative;
+  background: var(--surface-base);
+  min-height: 100vh;
+}
+.hearth-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  /* Overhead stage spotlight — slightly cooler than the original lamp glow.
+     A peach core fades into a warm-cream halo, so the page reads as lit
+     from above rather than from a corner lamp. */
+  background:
+    radial-gradient(
+      ellipse 70% 55% at var(--lamp-origin),
+      var(--accent-glow) 0%,
+      transparent 60%
+    ),
+    radial-gradient(
+      ellipse 110% 80% at var(--lamp-origin),
+      var(--spotlight-tint) 0%,
+      transparent 65%
+    );
+}
+.hearth-shell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: var(--grain-opacity);
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.6 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+.hearth-shell > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Form controls inherit the warm palette */
+input,
+textarea,
+select,
+button {
+  font-family: inherit;
+  color: inherit;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--text-tertiary);
+}
+
+/* Subtle scrollbars that match the warm palette */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--border-hairline);
+  border-radius: 8px;
+  border: 2px solid var(--surface-base);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-tertiary);
+}
+
+/* --- Stage primitives -------------------------------------------------- */
+
+/* The amber rule under the masthead — gives the chrome a "playbill" edge. */
+.rostrum-rule {
+  height: 1px;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    var(--rostrum-rule) 18%,
+    var(--rostrum-rule) 82%,
+    transparent 100%
+  );
+  opacity: 0.45;
+}
+
+/* Speaker rule typography — used by the transcript header for each turn. */
+.speaker-rule {
+  font-family: "Inter Tight", "Inter", system-ui, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+/* Speaker bar — the 3px vertical accent on the side of a transcript turn.
+   Color set by a Tailwind class on the same element via border-l-* / bg-*. */
+.speaker-bar {
+  width: 3px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+/* Pull-quote treatment for the first answer in interview mode and for
+   editorial moments in the artifact. */
+.pull-quote {
+  font-family: "Newsreader", Charter, Georgia, serif;
+  font-style: italic;
+  font-size: 1.5rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+}
+
+/* Story dinkus — the centered three-dot ornament that separates story turns
+   instead of speaker labels. */
+.dinkus {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+  margin: 1.25rem 0;
+  color: var(--text-tertiary);
+  font-family: "Newsreader", Charter, Georgia, serif;
+  font-size: 0.9rem;
+  letter-spacing: 0.6em;
+}
+
+/* Drop cap for the printed artifact — only kicks in on print and on the
+   first paragraph of an artifact. */
+.drop-cap::first-letter {
+  font-family: "Newsreader", Charter, Georgia, serif;
+  font-weight: 600;
+  font-size: 3.2em;
+  line-height: 0.9;
+  float: left;
+  margin: 0.08em 0.08em 0 0;
+  color: var(--accent-deep);
+}

@@ -1,0 +1,64 @@
+# Deploy llm-arena to GitHub Pages.
+#
+# This is a project page (served from /llm-arena/), so we set NUXT_APP_BASE_URL
+# at build time and let Nuxt prefix every asset URL accordingly. The deploy
+# target is Pages directly (not a gh-pages branch), so the source repo stays
+# at a single commit.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Don't queue concurrent runs — only the latest deploy matters.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # No `version:` here — pnpm/action-setup reads it from
+      # package.json's `packageManager` field, and specifying both errors out.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Generate static site
+        env:
+          NUXT_APP_BASE_URL: /llm-arena/
+          NUXT_PUBLIC_SITE_URL: https://georgebuilds.github.io/llm-arena
+        run: pnpm generate
+
+      # Disable Jekyll so files in `_nuxt/` are served as-is.
+      - run: touch .output/public/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: .output/public
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

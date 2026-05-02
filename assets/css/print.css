@@ -1,0 +1,126 @@
+/**
+ * Print stylesheet — the printed PDF is a first-class artifact, not a screen
+ * dump. Strategy:
+ *   - Force the warm light palette (regardless of dark mode), but keep the
+ *     speaker-color cues so the reader can still tell who said what.
+ *   - Hide all chrome (.no-print).
+ *   - Tighten line-length, expand margins, and let the editorial typography
+ *     do the work.
+ *   - Drop caps + masthead rule on the artifact (driven by classes on the
+ *     components themselves, not magic selectors here).
+ */
+@media print {
+  @page {
+    margin: 22mm 18mm 18mm 18mm;
+    size: A4;
+  }
+
+  /* Force light palette regardless of dark-mode class. */
+  html.dark,
+  .dark {
+    --surface-base: #FFFFFF;
+    --surface-1:    #FFFFFF;
+    --surface-2:    #FFFFFF;
+    --surface-3:    #F5F0E5;
+    --text-primary:   #1F1A14;
+    --text-secondary: #5C5246;
+    --text-tertiary:  #6F665B;
+    --border-hairline: #D6CDBC;
+    --accent:        #C26241;
+    --accent-deep:   #A24E32;
+    --accent-text:   #FFFFFF;
+    --model-two:     #4F7C8C;
+    --model-two-deep: #3F6573;
+    --model-two-text: #FFFFFF;
+    --hearth-amber:      #B8804A;
+    --hearth-amber-deep: #A0703D;
+    --rostrum-rule:      #B8804A;
+  }
+
+  html,
+  body {
+    background: #FFFFFF !important;
+    color: #1F1A14 !important;
+    font-family: "Newsreader", "Charter", Georgia, serif !important;
+  }
+
+  /* Ditch the lamp + grain overlays — pure white paper. */
+  .hearth-shell::before,
+  .hearth-shell::after {
+    display: none !important;
+  }
+
+  /* Hide all interactive chrome via this opt-out class. */
+  .print\:hidden,
+  .no-print {
+    display: none !important;
+  }
+
+  /* The transcript fills the page. */
+  .print-surface {
+    background: #FFFFFF !important;
+    box-shadow: none !important;
+    border: 0 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Honor speaker color fills + amber rostrum rule (browsers respect this
+     when "Background graphics" is on). */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Don't break a single transcript row across pages. */
+  .bubble-block {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* The 3px speaker bar reads great on paper too — keep it visible. */
+  .speaker-bar {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Stage directions get a slightly more reserved tone on paper. */
+  .system-note {
+    color: #6F665B !important;
+  }
+
+  /* Strip motion and animations. */
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  /* Reveal the print-only masthead. */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Drop-cap bumps slightly on paper for elegance. */
+  .drop-cap::first-letter {
+    font-size: 3.6em !important;
+    color: var(--accent-deep) !important;
+  }
+
+  /* Page break before the artifact card so a verdict / final draft starts
+     on a fresh page. */
+  .print-surface > .bubble-block:has(.drop-cap) {
+    page-break-before: auto;
+  }
+
+  a[href]::after {
+    content: "";
+  }
+}
+
+/* Print-only elements are hidden in normal screen flow. */
+.print-only {
+  display: none;
+}
