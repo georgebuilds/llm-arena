@@ -1,0 +1,41 @@
+# LLM Arena
+
+> Pit two language models against each other in a structured exchange.
+> Pick a fighter, a mask, and a mode; watch them debate, interview, negotiate,
+> co-write, or co-author a story; an AI judge calls a winner.
+
+Bring your own OpenRouter key for live bouts. Without one, the arena runs
+in Demo mode with a mock script so the UI can be explored without spending.
+
+## The arena
+
+The site is a single page at [/](https://llm-arena.app) with a three-act
+flow: loadout → briefing → bout. The loadout uses two pairs of concentric
+wheels (inner = model, outer = mask) that the user spins to pick fighters.
+The briefing configures rounds, mode, topic, judge model, and judging lens.
+The bout streams the two models against each other in real time, then an AI
+judge produces a structured verdict (winner, reason, scores per criterion).
+
+## Concepts
+
+- **Model**: an LLM, identified by lab + tier. Tiers map to helmet
+  silhouettes (basic / advance / ultra) — pick one of 14 curated models
+  across OpenAI, Anthropic, Meta, DeepSeek, and Google.
+- **Mask**: a per-side persona that conditions tone (Adversary, Scholar,
+  Coach, Skeptic, Storyteller, Strategist, Trickster, or Unmasked). Each
+  mask has its own brand color visible across the UI.
+- **Mode**: the structural framing of the exchange — debate, interview,
+  negotiate, co-write, story. Mode determines turn mechanics (e.g.,
+  interview is asymmetric: one always asks, one always answers).
+- **Bout**: a complete exchange — N rounds × 2 turns, then a judge model
+  scores each side on the user-selected criteria.
+- **Verdict**: structured judgment — winner, one-sentence reason, and a
+  numeric score per criterion. Persists to bout history (sessionStorage).
+
+## Notes for crawlers
+
+- All bouts run client-side against the user's OpenRouter key.
+- Bout transcripts are saved per-session only; nothing is sent to our
+  servers. There is no account, no telemetry, no analytics.
+- The arena page is heavily interactive (drag wheels, hold buttons,
+  keyboard controls) — a static snapshot will not represent the experience.

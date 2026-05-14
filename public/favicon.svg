@@ -1,6 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <rect width="64" height="64" rx="14" fill="#FAF6EF"/>
-  <circle cx="22" cy="32" r="11" fill="#4F7C8C"/>
-  <circle cx="42" cy="32" r="11" fill="#C26241"/>
-  <circle cx="32" cy="32" r="3" fill="#FAF6EF"/>
+  <rect width="64" height="64" rx="14" fill="#06080c"/>
+  <!-- Two helmet visors squaring off — left cyan, right orange — with a thin VS gap between -->
+  <rect x="10" y="26" width="20" height="12" rx="2" fill="#3e7e9c"/>
+  <rect x="11" y="27" width="18" height="3" fill="#bff5ff" opacity="0.7"/>
+  <rect x="34" y="26" width="20" height="12" rx="2" fill="#d97757"/>
+  <rect x="35" y="27" width="18" height="3" fill="#ffe39a" opacity="0.7"/>
+  <!-- top accent line -->
+  <rect x="0" y="0" width="64" height="2" fill="#6fe1f3" opacity="0.5"/>
+  <!-- diamond brand mark -->
+  <path d="M 32 6 L 36 10 L 32 14 L 28 10 Z" fill="#6fe1f3"/>
 </svg>

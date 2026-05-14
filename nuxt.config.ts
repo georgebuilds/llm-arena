@@ -3,9 +3,9 @@ const siteUrl = (process.env.NUXT_PUBLIC_SITE_URL || "https://llm-arena.app").re
 // `/<repo>/`. We let CI set this via NUXT_APP_BASE_URL; locally and on a
 // custom domain it stays "/".
 const baseURL = process.env.NUXT_APP_BASE_URL || "/";
-const title = "LLM Arena — watch two language models talk to each other";
+const title = "LLM Arena — pit two language models against each other";
 const description =
-  "Pit two language models against each other in a debate or open-ended chat. Bring your own OpenRouter key, set the rules, and read the conversation that unfolds.";
+  "Pick a fighter, a mask, and a mode. Two language models go at it across multiple rounds — debate, interview, negotiate, co-write, or co-author a story. An AI judge calls a winner. Bring your own OpenRouter key.";
 const ogImage = `${siteUrl}/og-image.svg`;
 // Public asset paths must include the baseURL so they resolve under gh-pages.
 const faviconHref = `${baseURL.replace(/\/$/, "")}/favicon.svg`;
@@ -31,8 +31,6 @@ export default defineNuxtConfig({
 
   modules: [
     "@nuxtjs/tailwindcss",
-    "@nuxtjs/color-mode",
-    "@nuxtjs/google-fonts",
     "@nuxtjs/sitemap",
     "@pinia/nuxt",
     "@vueuse/nuxt",
@@ -49,19 +47,12 @@ export default defineNuxtConfig({
     },
   },
 
-  css: ["~/assets/css/tokens.css", "~/assets/css/print.css"],
+  // No global stylesheets — arena components are self-styled via scoped CSS.
 
   runtimeConfig: {
     public: {
       siteUrl,
     },
-  },
-
-  colorMode: {
-    preference: "system",
-    fallback: "light",
-    classSuffix: "",
-    storageKey: "llm-arena-color-mode",
   },
 
   site: {
@@ -71,20 +62,6 @@ export default defineNuxtConfig({
 
   sitemap: {
     autoLastmod: true,
-  },
-
-  googleFonts: {
-    families: {
-      // Editorial/broadsheet display — gives the masthead, motion lines, and
-      // pull-quotes a literary record feel without reading as a tech blog.
-      Newsreader: { wght: [400, 500, 600, 700], ital: [400, 500, 600] },
-      // Body sans — neutral, modern, distinctly NOT Geist.
-      "Inter Tight": [400, 500, 600, 700],
-      // Mono — for model ids, round counters, timestamps.
-      "JetBrains Mono": [400, 500],
-    },
-    display: "swap",
-    preconnect: true,
   },
 
   app: {
@@ -97,8 +74,9 @@ export default defineNuxtConfig({
         { name: "viewport", content: "width=device-width, initial-scale=1" },
         { name: "description", content: description },
         { name: "robots", content: "index, follow" },
-        { name: "theme-color", content: "#FAF6EF", media: "(prefers-color-scheme: light)" },
-        { name: "theme-color", content: "#131110", media: "(prefers-color-scheme: dark)" },
+        // Arena is a dark-only experience — single theme-color, no light variant.
+        { name: "theme-color", content: "#06080c" },
+        { name: "color-scheme", content: "dark" },
         { name: "application-name", content: "LLM Arena" },
         { name: "apple-mobile-web-app-title", content: "LLM Arena" },
         { property: "og:type", content: "website" },
@@ -106,7 +84,7 @@ export default defineNuxtConfig({
         { property: "og:description", content: description },
         { property: "og:url", content: siteUrl },
         { property: "og:image", content: ogImage },
-        { property: "og:image:alt", content: "LLM Arena — two language models in conversation" },
+        { property: "og:image:alt", content: "LLM Arena — two robot helmets squaring off across a VS marker, the bout interface in the background" },
         { name: "twitter:card", content: "summary_large_image" },
         { name: "twitter:title", content: title },
         { name: "twitter:description", content: description },
