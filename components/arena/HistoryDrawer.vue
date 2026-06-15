@@ -2,7 +2,7 @@
 import { ref } from "vue";
 import { storeToRefs } from "pinia";
 import { useLoadout, type BoutRecord } from "~/stores/loadout";
-import { BRANDS, MASKS, MODELS } from "~/data/arena";
+import { BRANDS, MODELS } from "~/data/arena";
 import { useFoley } from "~/composables/useFoley";
 
 const loadout = useLoadout();
@@ -20,9 +20,6 @@ function toggle(id: string) {
 
 function modelById(id: string) {
   return MODELS.find((m) => m.id === id);
-}
-function maskById(id: string) {
-  return MASKS.find((m) => m.id === id);
 }
 function brandColor(modelId: string) {
   const m = modelById(modelId);

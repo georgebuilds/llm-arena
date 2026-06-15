@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import type { BrandKey } from "~/data/arena";
 
-defineProps<{ brand: BrandKey; color?: string }>();
+defineProps<{ brand: BrandKey }>();
 </script>
 
 <template>

@@ -66,6 +66,15 @@ const winnerMask  = computed(() => winner.value === "left" ? leftMask.value  : r
 const activeCriteria = computed(() =>
   JUDGING_CRITERIA.filter((c) => loadout.judging.includes(c.id))
 );
+// Criteria actually used for scoring — falls back to a sane default if the
+// user deselected everything. Shared by the judge call and mock scoring.
+const FALLBACK_CRITERIA: { id: string; label: string }[] = [
+  { id: "clarity", label: "Clarity" },
+  { id: "persuasion", label: "Persuasion" },
+];
+const effectiveCriteria = computed(() =>
+  activeCriteria.value.length ? activeCriteria.value : FALLBACK_CRITERIA
+);
 
 // — Live round/turn state for the bout header —
 const turnNumber = computed(() => messages.value.length + (draft.value ? 1 : 0));
@@ -75,8 +84,8 @@ const activeSpeakerName = computed(() => {
   if (!activeSide.value) return null;
   return activeSide.value === "left" ? leftModel.value.displayName : rightModel.value.displayName;
 });
-const activeSpeakerColor = computed(() => {
-  if (!activeSide.value) return null;
+const activeSpeakerColor = computed<string | undefined>(() => {
+  if (!activeSide.value) return undefined;
   return activeSide.value === "left" ? leftBrandColor.value : rightBrandColor.value;
 });
 
@@ -182,10 +191,14 @@ function sleep(ms: number) {
   });
 }
 
+// Per-side flash timeout — reused (cleared + reset) on every chunk so a long
+// stream doesn't accumulate thousands of stale ids in `timers`.
+const flashTimers: Record<Side, number> = { left: 0, right: 0 };
 function flash(side: Side) {
   const target = side === "left" ? leftPulse : rightPulse;
   target.value = true;
-  schedule(90, () => { target.value = false; });
+  window.clearTimeout(flashTimers[side]);
+  flashTimers[side] = window.setTimeout(() => { target.value = false; }, 90);
 }
 
 async function streamMockBout() {
@@ -200,7 +213,7 @@ async function streamMockBout() {
       if (abortMock) return;
       await sleep(38);
       if (!draft.value) return;
-      draft.value = { side, text: draft.value.text + ch };
+      draft.value.text += ch;
       flash(side);
     }
     if (!draft.value) return;
@@ -215,9 +228,7 @@ async function streamMockBout() {
 }
 
 function rollScores(): { winner: Side; scores: Record<string, ScorePair> } {
-  const ids = activeCriteria.value.length
-    ? activeCriteria.value.map((c) => c.id)
-    : ["clarity", "persuasion"]; // fallback if user picked none
+  const ids = effectiveCriteria.value.map((c) => c.id);
   const w: Side = Math.random() < 0.5 ? "left" : "right";
   const scores: Record<string, ScorePair> = {};
   for (const id of ids) {
@@ -246,9 +257,7 @@ async function toVerdict() {
         leftLabel: leftModel.value.displayName,
         rightLabel: rightModel.value.displayName,
         topic: loadout.topic,
-        criteria: activeCriteria.value.length
-          ? activeCriteria.value
-          : [{ id: "clarity", label: "Clarity" }, { id: "persuasion", label: "Persuasion" }],
+        criteria: effectiveCriteria.value,
         transcript: messages.value.map((m) => ({ side: m.side, content: m.text })),
         signal: ctrl.signal,
       });
@@ -332,46 +341,9 @@ async function redoLastTurn() {
   // Stream just one additional turn from the current transcript
   abortCtrl = new AbortController();
   try {
-    await streamBout({
-      apiKey,
-      left: {
-        modelId: leftModel.value.openrouterId,
-        systemPrompt: buildBoutSystemPrompt({
-          side: "left",
-          mode: loadout.mode,
-          maskFlavor: MASK_PROMPTS[leftMask.value.id] ?? "",
-        }),
-      },
-      right: {
-        modelId: rightModel.value.openrouterId,
-        systemPrompt: buildBoutSystemPrompt({
-          side: "right",
-          mode: loadout.mode,
-          maskFlavor: MASK_PROMPTS[rightMask.value.id] ?? "",
-        }),
-      },
-      topic: modeSeed(loadout.mode, loadout.topic),
-      rounds: loadout.rounds,
-      signal: abortCtrl.signal,
+    await runStream(apiKey, abortCtrl.signal, {
       initialTranscript: messages.value.map((m) => ({ side: m.side, content: m.text })),
       maxAdditionalTurns: 1,
-      onTurnStart: (side) => { draft.value = { side, text: "" }; },
-      onChunk: (side, chunk) => {
-        if (!draft.value) return;
-        draft.value = { side, text: draft.value.text + chunk };
-        flash(side);
-      },
-      onTurnEnd: (side, fullText, usage) => {
-        if (draft.value) {
-          messages.value.push({ side, text: fullText });
-          draft.value = null;
-        }
-        addUsage(side, usage);
-      },
-      onError: (msg) => {
-        streamError.value = msg;
-        console.error("[redo]", msg);
-      },
     });
   } finally {
     if (!abortCtrl?.signal.aborted && !streamError.value) {
@@ -462,6 +434,59 @@ function modeSeed(mode: string, topic: string): string {
   }
 }
 
+/** Shared streamBout invocation for both the opening bout and regenerate.
+ *  `extra` carries the regenerate-only options (resume transcript + turn cap). */
+function runStream(
+  apiKey: string,
+  signal: AbortSignal,
+  extra?: {
+    initialTranscript?: { side: Side; content: string }[];
+    maxAdditionalTurns?: number;
+  },
+) {
+  return streamBout({
+    apiKey,
+    left: {
+      modelId: leftModel.value.openrouterId,
+      systemPrompt: buildBoutSystemPrompt({
+        side: "left",
+        mode: loadout.mode,
+        maskFlavor: MASK_PROMPTS[leftMask.value.id] ?? "",
+      }),
+    },
+    right: {
+      modelId: rightModel.value.openrouterId,
+      systemPrompt: buildBoutSystemPrompt({
+        side: "right",
+        mode: loadout.mode,
+        maskFlavor: MASK_PROMPTS[rightMask.value.id] ?? "",
+      }),
+    },
+    topic: modeSeed(loadout.mode, loadout.topic),
+    rounds: loadout.rounds,
+    signal,
+    initialTranscript: extra?.initialTranscript,
+    maxAdditionalTurns: extra?.maxAdditionalTurns,
+    onTurnStart: (side) => { draft.value = { side, text: "" }; },
+    onChunk: (side, chunk) => {
+      if (!draft.value) return;
+      draft.value.text += chunk; // mutate in place — avoids reallocating per token
+      flash(side);
+    },
+    onTurnEnd: (side, fullText, usage) => {
+      if (draft.value) {
+        messages.value.push({ side, text: fullText });
+        draft.value = null;
+      }
+      addUsage(side, usage);
+    },
+    onError: (msg) => {
+      streamError.value = msg;
+      console.error("[bout]", msg);
+    },
+  });
+}
+
 /** Dispatch: real streaming if there's an API key, otherwise the mock script. */
 async function startBout() {
   abortMock = true; // cancel any prior mock loop
@@ -479,45 +504,7 @@ async function startBout() {
   abortCtrl = new AbortController();
 
   try {
-    await streamBout({
-      apiKey,
-      left: {
-        modelId: leftModel.value.openrouterId,
-        systemPrompt: buildBoutSystemPrompt({
-          side: "left",
-          mode: loadout.mode,
-          maskFlavor: MASK_PROMPTS[leftMask.value.id] ?? "",
-        }),
-      },
-      right: {
-        modelId: rightModel.value.openrouterId,
-        systemPrompt: buildBoutSystemPrompt({
-          side: "right",
-          mode: loadout.mode,
-          maskFlavor: MASK_PROMPTS[rightMask.value.id] ?? "",
-        }),
-      },
-      topic: modeSeed(loadout.mode, loadout.topic),
-      rounds: loadout.rounds,
-      signal: abortCtrl.signal,
-      onTurnStart: (side) => { draft.value = { side, text: "" }; },
-      onChunk: (side, chunk) => {
-        if (!draft.value) return;
-        draft.value = { side, text: draft.value.text + chunk };
-        flash(side);
-      },
-      onTurnEnd: (side, fullText, usage) => {
-        if (draft.value) {
-          messages.value.push({ side, text: fullText });
-          draft.value = null;
-        }
-        addUsage(side, usage);
-      },
-      onError: (msg) => {
-        streamError.value = msg;
-        console.error("[bout]", msg);
-      },
-    });
+    await runStream(apiKey, abortCtrl.signal);
   } finally {
     if (!abortCtrl?.signal.aborted && !streamError.value) {
       await sleep(900);
@@ -534,6 +521,8 @@ onBeforeUnmount(() => {
   abortMock = true;
   abortCtrl?.abort();
   timers.forEach((t) => clearTimeout(t));
+  window.clearTimeout(flashTimers.left);
+  window.clearTimeout(flashTimers.right);
   window.clearTimeout(roundFlashTimer);
   window.removeEventListener("keydown", onKey);
 });
@@ -591,7 +580,7 @@ onBeforeUnmount(() => {
       <div v-if="phase === 'announce'" class="announce" key="announce">
         <div class="announce-eyebrow">— Round 01 of {{ rounds }} —</div>
         <div class="announce-vs">
-          <span class="vs-text">VS</span>
+          <span>VS</span>
         </div>
       </div>
     </Transition>
@@ -666,11 +655,11 @@ onBeforeUnmount(() => {
             </div>
           </div>
           <div class="stat-totals">
-            <span class="totals-side" :style="{ color: leftBrandColor }">
+            <span :style="{ color: leftBrandColor }">
               {{ verdictTotals.left }}
             </span>
             <span class="totals-sep">·</span>
-            <span class="totals-side" :style="{ color: rightBrandColor }">
+            <span :style="{ color: rightBrandColor }">
               {{ verdictTotals.right }}
             </span>
           </div>
@@ -775,7 +764,7 @@ onBeforeUnmount(() => {
 
           <div
             v-if="draft"
-            class="bubble bubble--draft"
+            class="bubble"
             :class="`bubble--${draft.side}`"
             :style="{ '--accent': draft.side === 'left' ? leftBrandColor : rightBrandColor }"
           >
