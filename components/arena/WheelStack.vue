@@ -75,22 +75,41 @@ function getCenterPx() {
 
 type WheelHandle = ReturnType<typeof useArenaWheel>;
 let active: WheelHandle | null = null;
+let activePointerId: number | null = null;
+let captureEl: Element | null = null;
 
 function onPointerDown(which: "inner" | "outer", e: PointerEvent) {
+  // One drag at a time — ignore a second pointer (e.g. grabbing the other
+  // ring) while a drag is in flight, so the first gesture's bookkeeping
+  // (velocity / lastAngle / dragging flag) can't be orphaned mid-gesture.
+  if (active) return;
   const w = which === "inner" ? modelWheel : maskWheel;
   active = w;
+  activePointerId = e.pointerId;
   const c = getCenterPx();
   w.startDrag(e.clientX, e.clientY, c.x, c.y);
-  (e.currentTarget as Element).setPointerCapture?.(e.pointerId);
+  const el = e.currentTarget as Element;
+  el.setPointerCapture?.(e.pointerId);
+  captureEl = el;
 }
 
 function onPointerMove(e: PointerEvent) {
-  active?.moveDrag(e.clientX, e.clientY);
+  if (!active || e.pointerId !== activePointerId) return;
+  active.moveDrag(e.clientX, e.clientY);
 }
 
-function onPointerUp() {
-  active?.endDrag();
+function onPointerUp(e: PointerEvent) {
+  if (!active || e.pointerId !== activePointerId) return;
+  active.endDrag();
+  // Explicitly release the capture we took (browsers auto-release on
+  // pointerup, but pointercancel + the multi-pointer guard above make the
+  // explicit release the safe path).
+  if (captureEl?.hasPointerCapture?.(e.pointerId)) {
+    captureEl.releasePointerCapture(e.pointerId);
+  }
   active = null;
+  activePointerId = null;
+  captureEl = null;
 }
 
 function nodePos(i: number, n: number, r: number, rotation: number) {
