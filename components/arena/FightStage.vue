@@ -159,13 +159,20 @@ onMounted(() => {
 });
 
 // — Mock bout streaming —
-// Placeholder for real model output. Drops in token-by-token to demo
-// the visor-pulse effect; swap with useConversation when ready.
-const SCRIPT: BoutMsg[] = [
-  { side: "left",  text: "I'll open. The strongest reading favors my position." },
-  { side: "right", text: "Bold claim. Let me show why the framing is wrong." },
-  { side: "left",  text: "Concede the framing — the conclusion still holds." },
-  { side: "right", text: "Then defend the leap from premise to conclusion." },
+// Placeholder for real model output (no API key). Drops in token-by-token
+// to demo the visor-pulse effect. Lines are cycled to fill the configured
+// round count so the demo honors the user's `rounds` selection.
+const MOCK_LINES: string[] = [
+  "I'll open. The strongest reading favors my position.",
+  "Bold claim. Let me show why the framing is wrong.",
+  "Concede the framing — the conclusion still holds.",
+  "Then defend the leap from premise to conclusion.",
+  "The leap is earned: each step follows from the one before it.",
+  "Not quite — that step smuggles in an unproven assumption.",
+  "Name it, then, and I'll either defend it or drop it.",
+  "Gladly: you assume the cost lands where the benefit does.",
+  "A fair hit. Grant it and the rest of the case still stands.",
+  "Stands, perhaps — but weaker than you first advertised.",
 ];
 
 function sleep(ms: number) {
@@ -183,15 +190,18 @@ function flash(side: Side) {
 
 async function streamMockBout() {
   abortMock = false;
-  for (const turn of SCRIPT) {
+  const totalTurns = Math.max(2, rounds.value * 2);
+  for (let i = 0; i < totalTurns; i++) {
     if (abortMock) return;
-    draft.value = { side: turn.side, text: "" };
-    for (const ch of turn.text) {
+    const side: Side = i % 2 === 0 ? "left" : "right";
+    const text = MOCK_LINES[i % MOCK_LINES.length];
+    draft.value = { side, text: "" };
+    for (const ch of text) {
       if (abortMock) return;
       await sleep(38);
       if (!draft.value) return;
-      draft.value = { side: turn.side, text: draft.value.text + ch };
-      flash(turn.side);
+      draft.value = { side, text: draft.value.text + ch };
+      flash(side);
     }
     if (!draft.value) return;
     messages.value.push(draft.value);
@@ -239,7 +249,7 @@ async function toVerdict() {
         criteria: activeCriteria.value.length
           ? activeCriteria.value
           : [{ id: "clarity", label: "Clarity" }, { id: "persuasion", label: "Persuasion" }],
-        transcript: messages.value,
+        transcript: messages.value.map((m) => ({ side: m.side, content: m.text })),
         signal: ctrl.signal,
       });
       if (ctrl.signal.aborted) return;
@@ -313,6 +323,9 @@ async function redoLastTurn() {
   verdictDismissed.value = false;
   deliberating.value = false;
   streamError.value = null;
+  // Re-sync the round-advance announcer to the popped transcript so the
+  // re-streamed turn re-fires the round flash if it crosses a boundary.
+  announcedRound.value = Math.max(1, Math.ceil(messages.value.length / 2) || 1);
   phase.value = "fighting";
   await nextTick();
 

@@ -72,6 +72,7 @@ export async function streamBout(args: StreamBoutArgs): Promise<void> {
     args.onTurnStart?.(side);
 
     let fullText = "";
+    let usage: TurnUsage | undefined;
     try {
       const res = await fetch(`${OPENROUTER_BASE}/chat/completions`, {
         method: "POST",
@@ -103,7 +104,6 @@ export async function streamBout(args: StreamBoutArgs): Promise<void> {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      let usage: TurnUsage | undefined;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -314,7 +314,15 @@ export async function judgeBout(args: JudgeArgs): Promise<JudgeResult> {
   }
   const data = await res.json();
   const content: string = data.choices?.[0]?.message?.content ?? "";
-  const parsed = JSON.parse(extractJson(content));
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any -- shape validated below
+  let parsed: any;
+  try {
+    parsed = JSON.parse(extractJson(content));
+  } catch {
+    // Distinct from network/HTTP errors so the caller can tell "the judge
+    // replied but not in JSON" apart from "the request failed".
+    throw new Error(`judge returned unparseable output: ${content.slice(0, 200) || "(empty)"}`);
+  }
 
   // basic validation
   if (parsed.winner !== "left" && parsed.winner !== "right") {

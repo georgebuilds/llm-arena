@@ -7,8 +7,6 @@ import BrandLogo from "./BrandLogo.vue";
 const props = defineProps<{
   brand: BrandKey;
   tier: Tier;
-  /** Disable mix-blend-mode (for placement on light surfaces). */
-  light?: boolean;
   /** Mirror horizontally so the helmet faces the opposite direction. */
   flipped?: boolean;
 }>();
@@ -50,7 +48,6 @@ const ear = computed(() => TIER_EAR[props.tier]);
     />
     <div
       class="helmet-img"
-      :class="{ 'helmet-img--light': light }"
       :style="{
         backgroundSize: crop.size,
         backgroundPosition: crop.position,

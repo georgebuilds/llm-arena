@@ -590,8 +590,7 @@ onBeforeUnmount(() => {
 @media (max-width: 1023px), (max-height: 580px) {
   .desktop-gate { display: flex; }
   .bg-grid, .bg-vignette,
-  .chrome,
-  :deep(.stage), :deep(.briefing), .fight-placeholder {
+  :deep(.stage), :deep(.briefing), :deep(.fight) {
     display: none !important;
   }
 }
